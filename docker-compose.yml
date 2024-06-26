@@ -1,7 +1,7 @@
 version : '3'
 services:
   tgtn:
-    image: praman113090/tgtn:${VERSION}
+    image: sidhopant/getting-started:praman
     restart: always
     ports:
       - "8889:80"
