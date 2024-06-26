@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  db:
+    image: mongo:latest
+    ports:
+      - "27019:27017"  
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: siddhu
+      MONGO_INITDB_ROOT_PASSWORD: w1f1s0ft
+      MONGO_INITDB_DATABASE: tour_project_db  
+    volumes:
+      - ./data:/data/db
+
+  tour-app:
+    build:
+      context: .
+      dockerfile: dockerfile
+    ports:
+      - "8008:80"
+    depends_on:
+      - db
+    environment:
+      DATABASE_HOST: db 
+      DATABASE_NAME: tour_project_db  
+      DATABASE_USERNAME: siddhu  
+      DATABASE_PASSWORD: w1f1s0ft  
