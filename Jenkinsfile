@@ -15,7 +15,7 @@ pipeline {
                         // Checkout code from GitHub using credentials
                         checkout([
                             $class: 'GitSCM',
-                            branches: [[name: '*/feature']],
+                            branches: [[name: '*/main']],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             userRemoteConfigs: [[
