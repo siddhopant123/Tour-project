@@ -10,9 +10,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Timeout wrapper for the checkout step
                     timeout(time: 10, unit: 'MINUTES') {
-                        // Checkout code from GitHub using credentials
                         checkout([
                             $class: 'GitSCM',
                             branches: [[name: '*/main']],
@@ -20,7 +18,7 @@ pipeline {
                             extensions: [],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/siddhopant123/Tour-project.git',
-                                credentialsId: '3f630e32-de75-421e-8362-00472c056752' // Replace with your Jenkins credentials ID for GitHub PAT
+                                credentialsId: '3f630e32-de75-421e-8362-00472c056752'
                             ]]
                         ])
                     }
@@ -31,8 +29,19 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image
-                    def customImage = docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                }
+            }
+        }
+
+        stage('Deploy Docker Image') {
+            steps {
+                script {
+                    sh """
+                        docker stop tour-container || true
+                        docker rm tour-container || true
+                        docker run -dp 127.0.0.1:8091:80 --name tour-container ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
+                    """
                 }
             }
         }
