@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'tour-sid'
-        DOCKER_TAG = 'tour-sid-img'
+        DOCKER_IMAGE = 'tour-image'
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
+        VERSION_FILE = 'version.txt'
     }
 
     stages {
@@ -27,10 +27,37 @@ pipeline {
             }
         }
 
+        stage('Determine Version') {
+            steps {
+                script {
+                    // Create the version file if it doesn't exist
+                    if (!fileExists(env.VERSION_FILE)) {
+                        writeFile file: env.VERSION_FILE, text: '0.0.0.0.0.0'
+                    }
+
+                    // Read the current version from the file
+                    def version = readFile(env.VERSION_FILE).trim()
+
+                    // Split the version and increment the last segment
+                    def versionParts = version.tokenize('.')
+                    versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
+
+                    // Join the parts to form the new version
+                    env.DOCKER_TAG = versionParts.join('.')
+
+                    // Save the new version to the file
+                    writeFile file: env.VERSION_FILE, text: env.DOCKER_TAG
+
+                    // Print the new version
+                    echo "New Docker image version: ${env.DOCKER_TAG}"
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
                 }
             }
         }
@@ -39,7 +66,7 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', env.DOCKER_REGISTRY_CREDENTIALS) {
-                        docker.image("sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push()
+                        docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push()
                     }
                 }
             }
@@ -51,8 +78,8 @@ pipeline {
                     sh """
                         docker stop tour-container || true
                         docker rm tour-container || true
-                        docker pull sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
-                        docker run -dp 127.0.0.1:8098:80 --name tour-container sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
+                        docker pull ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
+                        docker run -dp 127.0.0.1:8098:80 --name tour-container ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
                     """
                 }
             }
