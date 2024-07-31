@@ -5,6 +5,7 @@ pipeline {
         DOCKER_IMAGE = 'sidhopant/tour-image-sid' // Docker Hub image name
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
+        GIT_CREDENTIALS_ID = 'credentialsId' // Replace with your GitHub credentials ID
     }
 
     stages {
@@ -58,7 +59,7 @@ pipeline {
             steps {
                 script {
                     // Commit the updated version.txt back to the repository
-                    withCredentials([usernamePassword(credentialsId: 'github-credentials-id', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
                         sh """
                             git config user.email "jenkins@example.com"
                             git config user.name "Jenkins"
