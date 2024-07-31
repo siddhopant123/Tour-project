@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'tour-image'
-        DOCKER_TAG = 'tour-project-img'
+        DOCKER_IMAGE = 'tour-sid'
+        DOCKER_TAG = 'tour-sid-img'
+        DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
     }
 
     stages {
@@ -29,7 +30,17 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                    docker.build("sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                }
+            }
+        }
+
+        stage('Push Docker Image to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', env.DOCKER_REGISTRY_CREDENTIALS) {
+                        docker.image("sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push()
+                    }
                 }
             }
         }
@@ -40,7 +51,8 @@ pipeline {
                     sh """
                         docker stop tour-container || true
                         docker rm tour-container || true
-                        docker run -dp 127.0.0.1:8091:80 --name tour-container ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
+                        docker pull sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
+                        docker run -dp 127.0.0.1:8098:80 --name tour-container sidhopant/${env.DOCKER_IMAGE}:${env.DOCKER_TAG}
                     """
                 }
             }
