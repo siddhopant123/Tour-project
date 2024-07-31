@@ -5,7 +5,8 @@ pipeline {
         DOCKER_IMAGE = 'sidhopant/tour-image-sid' // Docker Hub image name
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
-        GIT_CREDENTIALS_ID = '3f630e32-de75-421e-8362-00472c056752' // Replace with your GitHub credentials ID
+        GIT_CREDENTIALS_ID = '3f630e32-de75-421e-8362-00472c056752' // Replace with your actual GitHub credentials ID
+        BRANCH_NAME = 'main' // Specify the branch name
     }
 
     stages {
@@ -15,12 +16,12 @@ pipeline {
                     timeout(time: 10, unit: 'MINUTES') {
                         checkout([
                             $class: 'GitSCM',
-                            branches: [[name: '*/main']],
+                            branches: [[name: "*/${env.BRANCH_NAME}"]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/siddhopant123/Tour-project.git',
-                                credentialsId: '3f630e32-de75-421e-8362-00472c056752'
+                                credentialsId: env.GIT_CREDENTIALS_ID
                             ]]
                         ])
                     }
@@ -65,7 +66,7 @@ pipeline {
                             git config user.name "Jenkins"
                             git add ${env.VERSION_FILE}
                             git commit -m "Update Docker image version to ${env.DOCKER_TAG}"
-                            git push https://${GITHUB_USER}:${GITHUB_PASS}@github.com/siddhopant123/Tour-project.git
+                            git push https://${GITHUB_USER}:${GITHUB_PASS}@github.com/siddhopant123/Tour-project.git HEAD:${env.BRANCH_NAME}
                         """
                     }
                 }
