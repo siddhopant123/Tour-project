@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'sidhopant/tour-image-sid' // Use your Docker Hub username or organization
+        DOCKER_IMAGE = 'sidhopant/tour-image-sid' // Docker Hub image name
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
+        GIT_CREDENTIALS_ID = '3f630e32-de75-421e-8362-00472c056752' // Replace with your GitHub credentials ID
     }
 
     stages {
@@ -30,15 +31,43 @@ pipeline {
         stage('Determine Version') {
             steps {
                 script {
+                    // Create the version file if it doesn't exist
                     if (!fileExists(env.VERSION_FILE)) {
                         writeFile file: env.VERSION_FILE, text: '0.0.0.0.0.0'
                     }
+                    
+                    // Read the current version
                     def version = readFile(env.VERSION_FILE).trim()
+                    
+                    // Split the version and increment the last segment
                     def versionParts = version.tokenize('.')
                     versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
+                    
+                    // Join the parts to form the new version
                     env.DOCKER_TAG = versionParts.join('.')
+                    
+                    // Save the new version to the file
                     writeFile file: env.VERSION_FILE, text: env.DOCKER_TAG
+                    
+                    // Print the new version
                     echo "New Docker image version: ${env.DOCKER_TAG}"
+                }
+            }
+        }
+
+        stage('Commit Version Update') {
+            steps {
+                script {
+                    // Commit the updated version.txt back to the repository
+                    withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
+                        sh """
+                            git config user.email "jenkins@example.com"
+                            git config user.name "Jenkins"
+                            git add ${env.VERSION_FILE}
+                            git commit -m "Update Docker image version to ${env.DOCKER_TAG}"
+                            git push https://${GITHUB_USER}:${GITHUB_PASS}@github.com/siddhopant123/Tour-project.git
+                        """
+                    }
                 }
             }
         }
