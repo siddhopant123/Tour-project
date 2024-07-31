@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'tour-image'
+        DOCKER_IMAGE = 'tour-image-sid'
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
     }
