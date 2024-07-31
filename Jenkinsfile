@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'tour-image-sid'
+        DOCKER_IMAGE = 'sidhopant/tour-image-sid' // Use your Docker Hub username or organization
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
     }
@@ -30,25 +30,14 @@ pipeline {
         stage('Determine Version') {
             steps {
                 script {
-                    // Create the version file if it doesn't exist
                     if (!fileExists(env.VERSION_FILE)) {
                         writeFile file: env.VERSION_FILE, text: '0.0.0.0.0.0'
                     }
-
-                    // Read the current version from the file
                     def version = readFile(env.VERSION_FILE).trim()
-
-                    // Split the version and increment the last segment
                     def versionParts = version.tokenize('.')
                     versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
-
-                    // Join the parts to form the new version
                     env.DOCKER_TAG = versionParts.join('.')
-
-                    // Save the new version to the file
                     writeFile file: env.VERSION_FILE, text: env.DOCKER_TAG
-
-                    // Print the new version
                     echo "New Docker image version: ${env.DOCKER_TAG}"
                 }
             }
