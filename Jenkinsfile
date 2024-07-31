@@ -21,7 +21,7 @@ pipeline {
                             extensions: [],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/siddhopant123/Tour-project.git',
-                                credentialsId: env.GIT_CREDENTIALS_ID
+                                credentialsId: 'GIT_CREDENTIALS_ID'
                             ]]
                         ])
                     }
@@ -60,7 +60,7 @@ pipeline {
             steps {
                 script {
                     // Commit the updated version.txt back to the repository
-                    withCredentials([usernamePassword(GIT_CREDENTIALS_ID: env.GIT_CREDENTIALS_ID, usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'GIT_CREDENTIALS_ID', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
                         sh """
                             git config user.email "shelkesiddhopant@gmail.com"
                             git config user.name "siddhopant123"
