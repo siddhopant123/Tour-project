@@ -6,6 +6,7 @@ pipeline {
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
         GIT_CREDENTIALS_ID = '3f630e32-de75-421e-8362-00472c056752' // Replace with your GitHub credentials ID
+        BRANCH_NAME = 'main' // Branch name
     }
 
     stages {
@@ -15,12 +16,12 @@ pipeline {
                     timeout(time: 10, unit: 'MINUTES') {
                         checkout([
                             $class: 'GitSCM',
-                            branches: [[name: '*/main']],
+                            branches: [[name: "*/${env.BRANCH_NAME}"]],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/siddhopant123/Tour-project.git',
-                                credentialsId: 'GIT_CREDENTIALS_ID'
+                                credentialsId: env.GIT_CREDENTIALS_ID
                             ]]
                         ])
                     }
@@ -61,11 +62,11 @@ pipeline {
                     // Commit the updated version.txt back to the repository
                     withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
                         sh """
-                            git config user.email "jenkins@example.com"
-                            git config user.name "Jenkins"
+                            git config user.email "shelkesiddhopant@gmail.com"
+                            git config user.name "siddhopant123"
                             git add ${env.VERSION_FILE}
                             git commit -m "Update Docker image version to ${env.DOCKER_TAG}"
-                            git push https://${GITHUB_USER}:${GITHUB_PASS}@github.com/siddhopant123/Tour-project.git
+                            git push https://${GITHUB_USER}:${GITHUB_PASS}@github.com/siddhopant123/Tour-project.git HEAD:${env.BRANCH_NAME}
                         """
                     }
                 }
