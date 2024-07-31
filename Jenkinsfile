@@ -5,7 +5,7 @@ pipeline {
         DOCKER_IMAGE = 'sidhopant/tour-image-sid' // Docker Hub image name
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
-        GIT_CREDENTIALS_ID = '3f630e32-de75-421e-8362-00472c056752' // Replace with your actual GitHub credentials ID
+        credentialsId = '3f630e32-de75-421e-8362-00472c056752' // Replace with your actual GitHub credentials ID
         BRANCH_NAME = 'main' // Specify the branch name
     }
 
@@ -21,7 +21,7 @@ pipeline {
                             extensions: [],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/siddhopant123/Tour-project.git',
-                                credentialsId: 'GIT_CREDENTIALS_ID'
+                                credentialsId: '3f630e32-de75-421e-8362-00472c056752'
                             ]]
                         ])
                     }
@@ -60,7 +60,7 @@ pipeline {
             steps {
                 script {
                     // Commit the updated version.txt back to the repository
-                    withCredentials([usernamePassword(credentialsId: 'GIT_CREDENTIALS_ID', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'credentialsId', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
                         sh """
                             git config user.email "shelkesiddhopant@gmail.com"
                             git config user.name "siddhopant123"
