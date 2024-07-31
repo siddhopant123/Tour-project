@@ -5,8 +5,7 @@ pipeline {
         DOCKER_IMAGE = 'sidhopant/tour-image-sid' // Docker Hub image name
         DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials' // Docker Hub credentials ID
         VERSION_FILE = 'version.txt'
-        credentialsId = '3f630e32-de75-421e-8362-00472c056752' // Replace with your actual GitHub credentials ID
-        BRANCH_NAME = 'main' // Specify the branch name
+        GIT_CREDENTIALS_ID = '3f630e32-de75-421e-8362-00472c056752' // Replace with your GitHub credentials ID
     }
 
     stages {
@@ -16,12 +15,12 @@ pipeline {
                     timeout(time: 10, unit: 'MINUTES') {
                         checkout([
                             $class: 'GitSCM',
-                            branches: [[name: "*/${env.BRANCH_NAME}"]],
+                            branches: [[name: '*/main']],
                             doGenerateSubmoduleConfigurations: false,
                             extensions: [],
                             userRemoteConfigs: [[
                                 url: 'https://github.com/siddhopant123/Tour-project.git',
-                                credentialsId: '3f630e32-de75-421e-8362-00472c056752'
+                                credentialsId: 'GIT_CREDENTIALS_ID'
                             ]]
                         ])
                     }
@@ -60,13 +59,13 @@ pipeline {
             steps {
                 script {
                     // Commit the updated version.txt back to the repository
-                    withCredentials([usernamePassword(credentialsId: 'credentialsId', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: env.GIT_CREDENTIALS_ID, usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_PASS')]) {
                         sh """
-                            git config user.email "shelkesiddhopant@gmail.com"
-                            git config user.name "siddhopant123"
+                            git config user.email "jenkins@example.com"
+                            git config user.name "Jenkins"
                             git add ${env.VERSION_FILE}
                             git commit -m "Update Docker image version to ${env.DOCKER_TAG}"
-                            git push https://${GITHUB_USER}:${GITHUB_PASS}@github.com/siddhopant123/Tour-project.git HEAD:${env.BRANCH_NAME}
+                            git push https://${GITHUB_USER}:${GITHUB_PASS}@github.com/siddhopant123/Tour-project.git
                         """
                     }
                 }
