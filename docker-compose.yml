@@ -1,7 +1,0 @@
-version : '3'
-services:
-  tgtn:
-    image: sidhopant/getting-started:praman
-    restart: always
-    ports:
-      - "8890:80"
