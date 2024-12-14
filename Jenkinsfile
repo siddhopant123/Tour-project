@@ -2,11 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'sidhopant/tour-image-sid'  // Docker Hub image name
-        DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials'  // Docker Hub credentials ID
+        DOCKER_IMAGE = 'sidhopant/tour-image-sid'
+        DOCKER_REGISTRY_CREDENTIALS = 'docker-hub-credentials'
         VERSION_FILE = 'version.txt'
-        GIT_CREDENTIALS_ID = 'github-credentials'  // GitHub credentials ID
-        BRANCH_NAME = 'main'  // Branch name
+        BRANCH_NAME = 'main'
     }
 
     stages {
@@ -19,7 +18,6 @@ pipeline {
         stage('Determine Version') {
             steps {
                 script {
-                    // Ensure the version file exists and update the version
                     def version = fileExists(env.VERSION_FILE) ? readFile(env.VERSION_FILE).trim() : '0.0.0'
                     def versionParts = version.tokenize('.')
                     versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
@@ -34,7 +32,9 @@ pipeline {
             steps {
                 script {
                     docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
-                        .push()
+                    docker.withRegistry('https://index.docker.io/v1/', env.DOCKER_REGISTRY_CREDENTIALS) {
+                        docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push()
+                    }
                 }
             }
         }
