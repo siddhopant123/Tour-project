@@ -18,7 +18,7 @@ pipeline {
         stage('Determine Version') {
             steps {
                 script {
-                    def version = fileExists(env.VERSION_FILE) ? readFile(env.VERSION_FILE).trim() : '0.0.0'
+                    def version = fileExists(env.VERSION_FILE) ? readFile(env.VERSION_FILE).trim() : '0.0.0.0.0.0'
                     def versionParts = version.tokenize('.')
                     versionParts[-1] = (versionParts[-1].toInteger() + 1).toString()
                     env.DOCKER_TAG = versionParts.join('.')
