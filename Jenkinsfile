@@ -7,6 +7,8 @@ pipeline {
         SSH_KEY = credentials('ec2-ssh-key') // SSH key in Jenkins credentials
         REMOTE_USER = "ubuntu"
         REMOTE_HOST = "3.7.17.173"
+        DEPLOYMENT_NAME = "tour-project"   // K8s deployment name
+        CONTAINER_NAME = "tour-project"    // K8s container name
     }
 
     stages {
@@ -24,8 +26,10 @@ pipeline {
 
         stage('Push Docker Image') {
             steps {
-                sh 'echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin'
-                sh 'docker push $DOCKER_IMAGE:latest'
+                sh '''
+                    echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin
+                    docker push $DOCKER_IMAGE:latest
+                '''
             }
         }
 
@@ -34,12 +38,18 @@ pipeline {
                 sshagent(credentials: ['ec2-ssh-key']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
-                            kubectl set image -f k8s-deployment.yaml tour-project=$DOCKER_IMAGE:latest --record || \
-                            kubectl apply -f k8s-deployment.yaml
+                            kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$DOCKER_IMAGE:latest --record || true
+                            kubectl rollout status deployment/$DEPLOYMENT_NAME || kubectl apply -f k8s-deployment.yaml
                         '
                     """
                 }
             }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker logout'
         }
     }
 }
