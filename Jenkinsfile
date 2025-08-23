@@ -1,10 +1,12 @@
 pipeline {
-    agent any
+    agent {
+        docker { image 'bitnami/kubectl:latest' }
+    }
 
     environment {
         DOCKER_IMAGE = "sidhopant/tour-project"
-        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')  // Docker Hub username & password
-        KUBECONFIG = credentials('kubeconfig-dev')               // kubeconfig secret from Jenkins
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')
+        KUBECONFIG = credentials('kubeconfig-dev')
         DEPLOYMENT_NAME = "tour-project"
         CONTAINER_NAME = "tour-project"
     }
