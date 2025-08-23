@@ -3,12 +3,10 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "sidhopant/tour-project"
-        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')  // Docker Hub username & password
-        SSH_KEY = credentials('ec2-ssh-key') // SSH key in Jenkins credentials
-        REMOTE_USER = "ubuntu"
-        REMOTE_HOST = "3.7.17.173"
-        DEPLOYMENT_NAME = "tour-project"   // K8s deployment name
-        CONTAINER_NAME = "tour-project"    // K8s container name
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')
+        KUBECONFIG_CONTENT = credentials('kubeconfig-dev')  // Jenkins secret with kubeconfig
+        DEPLOYMENT_NAME = "tour-project"
+        CONTAINER_NAME = "tour-project"
     }
 
     stages {
@@ -35,12 +33,14 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sshagent(credentials: ['ec2-ssh-key']) {
+                // Write kubeconfig to temp file
+                withTempFile('kubeconfig') { kubeFile ->
+                    writeFile file: kubeFile, text: "${KUBECONFIG_CONTENT}"
                     sh """
-                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
-                            kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$DOCKER_IMAGE:latest --record || true
-                            kubectl rollout status deployment/$DEPLOYMENT_NAME || kubectl apply -f k8s-deployment.yaml
-                        '
+                        export KUBECONFIG=$kubeFile
+                        kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$DOCKER_IMAGE:latest --record || true
+                        kubectl rollout status deployment/$DEPLOYMENT_NAME
+                        kubectl apply -f k8s-deployment.yaml
                     """
                 }
             }
