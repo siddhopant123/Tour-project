@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "sidhopant/tour-project"
-        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')
-        KUBECONFIG_CONTENT = credentials('kubeconfig-dev')  // Jenkins secret with kubeconfig
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')  // Docker Hub username & password
+        KUBECONFIG = credentials('kubeconfig-dev')               // kubeconfig secret from Jenkins
         DEPLOYMENT_NAME = "tour-project"
         CONTAINER_NAME = "tour-project"
     }
@@ -33,11 +33,8 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                // Write kubeconfig to temp file
-                withTempFile('kubeconfig') { kubeFile ->
-                    writeFile file: kubeFile, text: "${KUBECONFIG_CONTENT}"
+                withKubeConfig([credentialsId: 'kubeconfig-dev']) {
                     sh """
-                        export KUBECONFIG=$kubeFile
                         kubectl set image deployment/$DEPLOYMENT_NAME $CONTAINER_NAME=$DOCKER_IMAGE:latest --record || true
                         kubectl rollout status deployment/$DEPLOYMENT_NAME
                         kubectl apply -f k8s-deployment.yaml
