@@ -3,8 +3,10 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "sidhopant/tour-project"
-        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')
-        KUBECONFIG = credentials('kubeconfig-file')
+        DOCKER_HUB_CREDENTIALS = credentials('dockerhub-creds')  // Docker Hub username & password
+        SSH_KEY = credentials('ec2-ssh-key') // your devops-key.pem added in Jenkins credentials
+        REMOTE_USER = "ubuntu"
+        REMOTE_HOST = "3.7.17.173"
     }
 
     stages {
@@ -27,15 +29,18 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy on EC2') {
             steps {
-                writeFile file: 'kubeconfig', text: "${KUBECONFIG}"
-                sh '''
-                  export KUBECONFIG=kubeconfig
-                  kubectl apply -f k8s-deployment.yaml
-                  kubectl set image deployment/tour-project tour-project=$DOCKER_IMAGE:latest --record
-                  kubectl rollout status deployment/tour-project
-                '''
+                sshagent(credentials: ['ec2-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
+                            docker pull $DOCKER_IMAGE:latest &&
+                            docker stop tour-project || true &&
+                            docker rm tour-project || true &&
+                            docker run -d --name tour-project -p 80:80 $DOCKER_IMAGE:latest
+                        '
+                    """
+                }
             }
         }
     }
