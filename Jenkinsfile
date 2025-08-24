@@ -2,37 +2,50 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_USERNAME = credentials('docker-username') // Jenkins secret
-        DOCKER_PASSWORD = credentials('docker-password') // Jenkins secret
-        DOCKER_IMAGE    = "sidhopant/tour-project:latest"
-        REMOTE_USER     = "ubuntu"
-        REMOTE_HOST     = "3.7.17.173" // Your EC2 IP
-        REMOTE_MANIFEST = "/home/ubuntu/k8s-deployment.yaml"
+        IMAGE_NAME = "sidhopant/tour-project:latest"
+        K8S_DEPLOYMENT = "tour-project"
+        K8S_MANIFEST_PATH = "/home/ubuntu/k8s-deployment.yaml" // path on EC2 instance
+        EC2_USER = "ubuntu"
+        EC2_HOST = "3.7.17.173" // replace with your EC2 IP
     }
 
     stages {
-        stage('Build & Push Docker Image') {
+        stage('Checkout') {
             steps {
-                script {
-                    sh """
-                        echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-                        docker build -t ${DOCKER_IMAGE} .
-                        docker push ${DOCKER_IMAGE}
+                git branch: 'main', url: 'https://github.com/siddhopant123/Tour-project.git'
+            }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                withCredentials([usernamePassword(
+                                    credentialsId: 'dockerhub-creds', 
+                                    usernameVariable: 'DOCKER_USERNAME', 
+                                    passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh '''
+                        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+                        docker build -t $IMAGE_NAME .
+                        docker push $IMAGE_NAME
                         docker logout
-                    """
+                    '''
                 }
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
-                sshagent(['ubuntu']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no $REMOTE_USER@$REMOTE_HOST '
-                            # Apply manifest using microk8s kubectl
-                            microk8s.kubectl apply -f ${REMOTE_MANIFEST}
-                        '
-                    """
+                sshagent(['ec2-ssh-key']) {
+                    withCredentials([file(credentialsId: 'kubeconfig-dev', variable: 'KUBECONFIG_FILE')]) {
+                        sh '''
+                            scp -o StrictHostKeyChecking=no $KUBECONFIG_FILE $EC2_USER@$EC2_HOST:/home/ubuntu/.kube/config
+                            ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+                                export KUBECONFIG=/home/ubuntu/.kube/config
+                                kubectl set image deployment/$K8S_DEPLOYMENT $K8S_DEPLOYMENT=$IMAGE_NAME --record || true
+                                kubectl rollout status deployment/$K8S_DEPLOYMENT || true
+                                kubectl apply -f $K8S_MANIFEST_PATH
+                            "
+                        '''
+                    }
                 }
             }
         }
@@ -40,10 +53,10 @@ pipeline {
 
     post {
         success {
-            echo "Deployment completed successfully!"
+            echo 'Deployment completed successfully!'
         }
         failure {
-            echo "Deployment failed. Check logs!"
+            echo 'Deployment failed. Check logs!'
         }
     }
 }
