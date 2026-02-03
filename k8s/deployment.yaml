@@ -16,4 +16,4 @@ spec:
         - name: tour
           image: sidhopant/tour-project:latest 
           ports:
-            - containerPort: 80
+            - containerPort: 81
