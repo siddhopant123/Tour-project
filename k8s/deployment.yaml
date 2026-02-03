@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tour
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tour
+  template:
+    metadata:
+      labels:
+        app: tour
+    spec:
+      containers:
+        - name: tour
+          image: sidhopant/tour-project:latest 
+          ports:
+            - containerPort: 80
