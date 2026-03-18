@@ -7,18 +7,16 @@ branches:
 
 env:
 IMAGE_NAME: tour-service
-DOCKER_REGISTRY: docker.io
 
 jobs:
 build-push-update:
-runs-on: ubuntu-latest   # 🔥 THIS WAS MISSING
+runs-on: ubuntu-latest
 
-```
 steps:
   - name: Checkout Code
     uses: actions/checkout@v3
 
-  - name: Generate Image Tag
+  - name: Set Image Tag
     run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
   - name: Login to DockerHub
@@ -30,7 +28,7 @@ steps:
   - name: Push Docker Image
     run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG
 
-  - name: Update Deployment YAML
+  - name: Update Kubernetes Deployment
     run: |
       sed -i "s|image:.*|image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG|g" k8s/deployment.yaml
 
