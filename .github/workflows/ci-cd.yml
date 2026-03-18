@@ -1,47 +1,51 @@
 name: CI-CD with ArgoCD
 
 on:
-push:
-branches:
-- main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
 
 env:
-IMAGE_NAME: tour-service
+  IMAGE_NAME: tour-service
 
 jobs:
-build-push-update:
-runs-on: ubuntu-latest
+  build-push-update:
+    runs-on: ubuntu-latest
 
-steps:
-  - name: Checkout Code
-    uses: actions/checkout@v3
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
 
-  - name: Set Image Tag
-    run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+      - name: Set Image Tag
+        run: echo "TAG=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
 
-  - name: Login to DockerHub
-    run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-  - name: Build Docker Image
-    run: docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG .
+      - name: Build Docker Image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG .
 
-  - name: Push Docker Image
-    run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG
+      - name: Push Docker Image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG
 
-  - name: Update Kubernetes Deployment
-    run: |
-      sed -i "s|image:.*|image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG|g" k8s/deployment.yaml
+      - name: Update Kubernetes Deployment
+        run: |
+          sed -i "s|image:.*|image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG|g" k8s/deployment.yaml
 
-  - name: Commit and Push Changes
-    run: |
-      git config --global user.name "github-actions"
-      git config --global user.email "actions@github.com"
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
 
-      if git diff --quiet; then
-        echo "No changes to commit"
-      else
-        git add k8s/deployment.yaml
-        git commit -m "Update image to $TAG"
-        git push
-      fi
-```
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add k8s/deployment.yaml
+            git commit -m "Update image to $TAG"
+            git push
+          fi
