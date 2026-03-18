@@ -6,7 +6,8 @@ branches:
 - main
 
 env:
-IMAGE_NAME: Tour-service
+IMAGE_NAME: tour-service
+DOCKER_REGISTRY: docker.io
 
 jobs:
 build-push-update:
@@ -14,33 +15,44 @@ runs-on: ubuntu-latest
 
 ```
 steps:
+  # 1️⃣ Checkout Code
   - name: Checkout Code
     uses: actions/checkout@v3
 
+  # 2️⃣ Generate Tag (using commit SHA)
   - name: Generate Image Tag
-    run: echo "TAG=$(date +%s)" >> $GITHUB_ENV
+    run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
 
+  # 3️⃣ Login to DockerHub
   - name: Login to DockerHub
-    run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+    run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
+  # 4️⃣ Build Docker Image
   - name: Build Docker Image
     run: |
       docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG .
 
+  # 5️⃣ Push Docker Image
   - name: Push Docker Image
     run: |
       docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG
 
-  # 🔥 Update Kubernetes YAML
+  # 6️⃣ Update Kubernetes Manifest
   - name: Update Deployment YAML
     run: |
       sed -i "s|image:.*|image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG|g" k8s/deployment.yaml
 
+  # 7️⃣ Commit Only If Changes Exist
   - name: Commit and Push Changes
     run: |
       git config --global user.name "github-actions"
       git config --global user.email "actions@github.com"
-      git add k8s/deployment.yaml
-      git commit -m "Update image to $TAG" || echo "No changes"
-      git push
+
+      if git diff --quiet; then
+        echo "No changes to commit"
+      else
+        git add k8s/deployment.yaml
+        git commit -m "Update image to $TAG"
+        git push
+      fi
 ```
