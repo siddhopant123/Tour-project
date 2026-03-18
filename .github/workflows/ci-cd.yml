@@ -11,7 +11,7 @@ DOCKER_REGISTRY: docker.io
 
 jobs:
 build-push-update:
-runs-on: ubuntu-latest
+runs-on: ubuntu-latest   # 🔥 THIS WAS MISSING
 
 ```
 steps:
