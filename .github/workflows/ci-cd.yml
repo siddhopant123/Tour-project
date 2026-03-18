@@ -20,23 +20,58 @@ jobs:
         uses: actions/checkout@v3
         with:
           persist-credentials: true
+          fetch-depth: 0   # IMPORTANT for tags
 
-      - name: Set Image Tag
-        run: echo "TAG=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+      # 🔥 STEP 1: Generate next version (v0.0.x)
+      - name: Generate Next Version Tag
+        id: version
+        run: |
+          git fetch --tags
 
+          LATEST_TAG=$(git tag --sort=-v:refname | head -n 1)
+
+          if [ -z "$LATEST_TAG" ]; then
+            NEW_TAG="v0.0.1"
+          else
+            echo "Latest tag: $LATEST_TAG"
+
+            VERSION=${LATEST_TAG#v}
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+            PATCH=$((PATCH + 1))
+            NEW_TAG="v$MAJOR.$MINOR.$PATCH"
+          fi
+
+          echo "New tag: $NEW_TAG"
+          echo "TAG=$NEW_TAG" >> $GITHUB_ENV
+
+      # 🔥 STEP 2: Create & push git tag
+      - name: Create Git Tag
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+
+          git tag $TAG
+          git push origin $TAG
+
+      # 🔥 STEP 3: Docker login
       - name: Login to DockerHub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
+      # 🔥 STEP 4: Build image
       - name: Build Docker Image
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG .
 
+      # 🔥 STEP 5: Push image
       - name: Push Docker Image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG
 
+      # 🔥 STEP 6: Update K8s deployment
       - name: Update Kubernetes Deployment
         run: |
           sed -i "s|image:.*|image: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:$TAG|g" k8s/deployment.yaml
 
+      # 🔥 STEP 7: Commit changes
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions"
